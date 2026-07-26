@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(find ~/Downloads ~/Desktop ~/Documents/Noosa -maxdepth 3 \\\\\\( -iname \"*.png\" -o -iname \"*.svg\" \\\\\\) -mtime -14 2>/dev/null | grep -vi \"node_modules\\\\|/src/imports/\" | head -40)"
+    ]
+  }
+}
