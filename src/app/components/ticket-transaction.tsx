@@ -1,5 +1,8 @@
 import { useMemo, useState } from "react";
 import { Upload, CreditCard, Search, ArrowUpDown, ListFilter, Plus } from "lucide-react";
+import { useEvent } from "./event-context";
+import type { Ticket } from "./event-context";
+import { CreateTicketModal } from "./create-ticket-modal";
 
 type TxStatus = "Paid" | "Ongoing" | "Canceled";
 
@@ -9,13 +12,15 @@ const STATUS_STYLE: Record<TxStatus, string> = {
   Canceled: "bg-[#f7e9e9] border-[#d8444b] text-[#d8444b]",
 };
 
-const TIERS = [
-  { name: "Early Bird", sold: 100, capacity: 100 },
-  { name: "Regular", sold: 50, capacity: 100 },
-  { name: "Early Bird", sold: 70, capacity: 100 },
-];
+/* No sales data exists in the prototype, so "sold" stays mocked per tier and is
+   clamped to whatever capacity the ticket actually has. Everything else —
+   the tier list, names, capacities, prices and totals — comes from the tickets
+   configured in Ticket & Registration. */
+const SOLD_SEED = [100, 50, 70];
 
-const TOTALS = { sold: 220, capacity: 300, revenue: "Rp18.000.000", target: "Rp18.000.000" };
+function rupiah(n: number) {
+  return `Rp${n.toLocaleString("id-ID")}`;
+}
 
 const TX_NAMES = [
   "Rizky Pratama", "Nina Kartika", "Lara Whitfield", "Budi Santoso", "Ayu Lestari",
@@ -58,21 +63,29 @@ function ProgressRing({ percent }: { percent: number }) {
 
 function SummaryCard({ label, value, suffix }: { label: string; value: string; suffix: string }) {
   return (
-    <div className="bg-[#f4f4f4] border border-[#d9d9d9] rounded-[16px] flex-[1_0_280px] content-stretch flex flex-col gap-[4px] items-start p-[16px]">
+    /* 1_1_ not 1_0_: the basis sets the wrap point, but the card must still be
+       able to shrink below it on narrow screens instead of overflowing. */
+    <div className="bg-[#f4f4f4] border border-[#d9d9d9] rounded-[16px] flex-[1_1_360px] min-w-0 content-stretch flex flex-col gap-[4px] items-start p-[16px]">
       <p className="font-normal leading-[1.3] text-[#9e9e9e] text-[16px]">{label}</p>
-      <p className="font-semibold leading-[1.2] text-[#131313] text-[28px]">
+      {/* "Rp18.000.000/Rp18.000.000" has no space to break at, so <wbr/> offers
+          the one sensible break point: it stays on one line where it fits and
+          drops the /total to a second line only when it has to. */}
+      <p className="font-semibold leading-[1.2] text-[#131313] text-[28px] w-full">
         {value}
+        <wbr />
         <span className="font-normal text-[#9e9e9e] text-[16px]">/{suffix}</span>
       </p>
     </div>
   );
 }
 
-function TierCard({ name, sold, capacity }: { name: string; sold: number; capacity: number }) {
-  const percent = Math.round((sold / capacity) * 100);
-  const left = capacity - sold;
+function TierCard({
+  name, sold, capacity, onEdit,
+}: { name: string; sold: number; capacity: number; onEdit: () => void }) {
+  const percent = capacity > 0 ? Math.round((sold / capacity) * 100) : 0;
+  const left = Math.max(0, capacity - sold);
   return (
-    <div className="bg-[#f4f4f4] border border-[#d9d9d9] rounded-[16px] flex-[1_0_280px] content-stretch flex gap-[12px] items-center p-[16px]">
+    <div className="bg-[#f4f4f4] border border-[#d9d9d9] rounded-[16px] flex-[1_1_240px] min-w-0 content-stretch flex gap-[12px] items-center p-[16px]">
       <ProgressRing percent={percent} />
       <div className="content-stretch flex flex-col gap-[2px] items-start flex-[1_0_0] min-w-px">
         <p className="font-normal leading-[1.3] text-[#9e9e9e] text-[16px]">{name}</p>
@@ -87,7 +100,8 @@ function TierCard({ name, sold, capacity }: { name: string; sold: number; capaci
         </p>
         <button
           type="button"
-          aria-label={`Add ${name} tickets`}
+          onClick={onEdit}
+          aria-label={`Edit ${name} capacity`}
           className="bg-[#e4e4e4] border border-[#d9d9d9] flex items-center justify-center rounded-[999px] shrink-0 size-[32px] cursor-pointer"
         >
           <Plus className="size-[20px]" strokeWidth={1.5} color="#131313" />
@@ -100,8 +114,20 @@ function TierCard({ name, sold, capacity }: { name: string; sold: number; capaci
 const COLUMNS = ["Status", "Transaction Date", "Name", "Phone Number", "Ticket Type", "Amount"] as const;
 
 export function TicketTransaction() {
+  const { tickets, updateTicket } = useEvent();
   const [query, setQuery] = useState("");
   const [asc, setAsc] = useState(true);
+  const [editing, setEditing] = useState<Ticket | null>(null);
+
+  // One card per ticket configured in Ticket & Registration.
+  const tiers = tickets.map((t, i) => ({
+    ticket: t,
+    sold: Math.min(SOLD_SEED[i] ?? 0, t.capacity),
+  }));
+  const totalCapacity = tickets.reduce((s, t) => s + t.capacity, 0);
+  const totalSold = tiers.reduce((s, t) => s + t.sold, 0);
+  const revenue = tiers.reduce((s, t) => s + (t.ticket.paid ? t.sold * t.ticket.price : 0), 0);
+  const revenueTarget = tickets.reduce((s, t) => s + (t.paid ? t.capacity * t.price : 0), 0);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -140,16 +166,31 @@ export function TicketTransaction() {
           </div>
         </div>
 
-        {/* Totals — wrap two-up, a lone card stretches to fill its row. */}
-        <div className="content-stretch flex flex-wrap gap-[12px] items-stretch w-full">
-          <SummaryCard label="Total Tickets Sold" value={String(TOTALS.sold)} suffix={String(TOTALS.capacity)} />
-          <SummaryCard label="Total Revenue" value={TOTALS.revenue} suffix={TOTALS.target} />
-        </div>
-        <div className="content-stretch flex flex-wrap gap-[12px] items-stretch w-full">
-          {TIERS.map((t, i) => (
-            <TierCard key={`${t.name}-${i}`} {...t} />
+        {/* One section: totals wrap two-up (360px basis), tiers three-up (240px). */}
+        <div className="content-stretch flex flex-wrap gap-[8px] items-stretch w-full">
+          <SummaryCard label="Total Tickets Sold" value={String(totalSold)} suffix={String(totalCapacity)} />
+          <SummaryCard label="Total Revenue" value={rupiah(revenue)} suffix={rupiah(revenueTarget)} />
+          {tiers.map(({ ticket, sold }) => (
+            <TierCard
+              key={ticket.id}
+              name={ticket.name}
+              sold={sold}
+              capacity={ticket.capacity}
+              onEdit={() => setEditing(ticket)}
+            />
           ))}
         </div>
+
+        {/* Edit the ticket without leaving this page. */}
+        <CreateTicketModal
+          open={editing !== null}
+          initial={editing}
+          onClose={() => setEditing(null)}
+          onSubmit={(draft) => {
+            if (editing) updateTicket(editing.id, draft);
+            setEditing(null);
+          }}
+        />
 
         {/* Search + sort + filter */}
         <div className="content-stretch flex gap-[12px] items-center w-full">

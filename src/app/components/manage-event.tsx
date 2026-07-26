@@ -51,6 +51,17 @@ const STATUS: Record<EventStatus, { label: string; className: string; Icon: type
    lives on the content pane instead, so it still spans the full column. */
 const RAIL = "sticky top-[75px] max-h-[calc(100vh-75px)] overflow-y-auto";
 
+/* Below laptop there isn't room to sit beside the content, so the expanded
+   panel takes over the screen entirely. From laptop up it goes back to being a
+   sticky column alongside the content. */
+const RAIL_EXPANDED =
+  // Starts below the 75px nav rather than at inset-0, so the nav stays visible
+  // and reachable while the panel is open. Sides reset individually at laptop —
+  // `inset-auto` would fight the `top` utility for precedence.
+  "fixed left-0 right-0 top-[75px] bottom-0 z-40 w-full overflow-y-auto bg-[#fbfbfb] " +
+  "laptop:sticky laptop:left-auto laptop:right-auto laptop:bottom-auto laptop:z-auto " +
+  "laptop:h-auto laptop:w-[290px] laptop:max-h-[calc(100vh-75px)]";
+
 function Sidebar({
   expanded, onToggle, active, onSelect, title, status,
 }: {
@@ -108,7 +119,7 @@ function Sidebar({
 
   /* Expanded: status + event name + labelled nav. */
   return (
-    <div className={`${RAIL} content-stretch flex flex-col gap-[16px] laptop:gap-[24px] items-start shrink-0 w-[200px] laptop:w-[290px] px-[16px] laptop:px-[24px] py-[16px] laptop:py-[24px]`}>
+    <div className={`${RAIL_EXPANDED} content-stretch flex flex-col gap-[16px] laptop:gap-[24px] items-start shrink-0 px-[16px] laptop:px-[24px] py-[16px] laptop:py-[24px]`}>
       <div className="content-stretch flex flex-col gap-[12px] items-start w-full">
         <div className="content-stretch flex gap-[12px] items-center justify-between w-full">
           <div className={`flex gap-[8px] items-center justify-center px-[16px] py-[8px] rounded-[16px] border ${s.className}`}>
@@ -315,11 +326,14 @@ function ComingSoon({ label }: { label: string }) {
   );
 }
 
+/** True where the expanded panel covers the screen — i.e. below `laptop:`. */
+const isOverlay = () => window.matchMedia("(max-width: 1023.98px)").matches;
+
 export function ManageEventPage() {
   const { manageEvent } = useEvent();
-  // Start folded on small screens — an expanded panel would leave the content
-  // pane unusably narrow. Mount-time only; the user can still expand it.
-  const [expanded, setExpanded] = useState(() => window.innerWidth >= 1024);
+  // Start folded on small screens — an expanded panel would cover the content.
+  // Mount-time only; the user can still expand it.
+  const [expanded, setExpanded] = useState(() => !isOverlay());
   const [active, setActive] = useState<SectionId>("information");
 
   if (!manageEvent) return <ComingSoon label="No event selected" />;
@@ -334,7 +348,12 @@ export function ManageEventPage() {
         expanded={expanded}
         onToggle={() => setExpanded((v) => !v)}
         active={active}
-        onSelect={setActive}
+        onSelect={(id) => {
+          setActive(id);
+          // Picking a section from the full-screen panel should land you on
+          // that page, not leave the panel covering it.
+          if (isOverlay()) setExpanded(false);
+        }}
         title={manageEvent.title}
         status={manageEvent.status}
       />
