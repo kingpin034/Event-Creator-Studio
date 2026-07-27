@@ -80,6 +80,11 @@ export type Ticket = {
    whole in-memory form intact when you navigate away and back. */
 export type Page = "create" | "discover" | "tickets" | "events" | "manage" | "checkin" | "withdraw";
 
+/* Which section of the Manage dashboard is showing. */
+export type ManageSection =
+  | "information" | "tickets" | "blast"
+  | "checkin" | "guests" | "transactions";
+
 type EventState = {
   page: Page;
   setPage: (p: Page) => void;
@@ -94,6 +99,8 @@ type EventState = {
   /** Withdraw form; also returns to wherever it was opened from. */
   openWithdraw: () => void;
   closeWithdraw: () => void;
+  manageSection: ManageSection;
+  setManageSection: (s: ManageSection) => void;
   activeTab: "discover" | "tickets" | "events";
   setActiveTab: (t: EventState["activeTab"]) => void;
   language: "id" | "en";
@@ -285,8 +292,11 @@ export function EventProvider({ children }: { children: ReactNode }) {
     setPage("manage");
   };
 
-  // Shared by the full-page sub-flows: remember what to go back to.
+  // Shared by the full-page sub-flows: remember what to go back to. The manage
+  // section lives here too — Check In and Withdraw unmount the dashboard, so
+  // local state would drop you back on Event Information on the way out.
   const [returnTo, setReturnTo] = useState<Page>("manage");
+  const [manageSection, setManageSection] = useState<ManageSection>("information");
   const openCheckIn = () => {
     setReturnTo(page);
     setPage("checkin");
@@ -318,6 +328,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
   const value: EventState = {
     page, setPage, manageEvent, openManage, publishManagedEvent,
     openCheckIn, closeCheckIn, openWithdraw, closeWithdraw,
+    manageSection, setManageSection,
     activeTab, setActiveTab, language, setLanguage,
     eventName, setEventName, slug, setSlug,
     startDate, setStartDate, startTime, setStartTime, endDate, setEndDate, endTime, setEndTime,

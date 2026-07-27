@@ -3,9 +3,19 @@ import svgPaths from "../../imports/Desktop/svg-p6j7kxcoso";
 import avatar from "../../imports/Desktop/70e45f1a0fc21216d81b88682bd3644cab93d013.png";
 import { useEvent } from "./event-context";
 
+/* Doubles as the home link — the logo takes you back to Discover. */
 function Logo() {
+  const { setPage, setActiveTab } = useEvent();
   return (
-    <div className="content-stretch flex gap-[12px] items-center relative shrink-0">
+    <button
+      type="button"
+      aria-label="Noosa home"
+      onClick={() => {
+        setPage("discover");
+        setActiveTab("discover");
+      }}
+      className="content-stretch flex gap-[12px] items-center relative shrink-0 cursor-pointer"
+    >
       <div className="h-[40px] relative shrink-0 w-[40.004px]">
         <svg className="absolute block inset-0 size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 40.0039 40">
           <path clipRule="evenodd" d={svgPaths.p1c3cb240} fill="#D8444B" fillRule="evenodd" />
@@ -16,7 +26,7 @@ function Logo() {
           <path d={svgPaths.p10f644a0} fill="#131313" />
         </svg>
       </div>
-    </div>
+    </button>
   );
 }
 

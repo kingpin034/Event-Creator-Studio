@@ -4,6 +4,7 @@ import {
   ScanFace, FileSearch, TrendingUp, PencilRuler, History, Save,
 } from "lucide-react";
 import { useEvent } from "./event-context";
+import type { ManageSection } from "./event-context";
 import type { EventStatus } from "./my-events-data";
 import { ImageCoverCard, GalleryCard } from "./left-column";
 import { ConfirmModal } from "./confirm-modal";
@@ -16,9 +17,8 @@ import {
   TicketsCard, EventSettingsCard,
 } from "./right-column";
 
-type SectionId =
-  | "information" | "tickets" | "blast"
-  | "checkin" | "guests" | "transactions";
+// Owned by the provider so Check In / Withdraw can come back to it.
+type SectionId = ManageSection;
 
 const NAV: { group: string; items: { id: SectionId; label: string; Icon: typeof FileText }[] }[] = [
   {
@@ -330,11 +330,10 @@ function ComingSoon({ label }: { label: string }) {
 const isOverlay = () => window.matchMedia("(max-width: 1023.98px)").matches;
 
 export function ManageEventPage() {
-  const { manageEvent } = useEvent();
+  const { manageEvent, manageSection: active, setManageSection: setActive } = useEvent();
   // Start folded on small screens — an expanded panel would cover the content.
   // Mount-time only; the user can still expand it.
   const [expanded, setExpanded] = useState(() => !isOverlay());
-  const [active, setActive] = useState<SectionId>("information");
 
   if (!manageEvent) return <ComingSoon label="No event selected" />;
 

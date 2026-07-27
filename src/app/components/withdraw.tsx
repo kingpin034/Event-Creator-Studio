@@ -23,6 +23,10 @@ function rupiah(n: number) {
   return n ? n.toLocaleString("id-ID") : "";
 }
 
+/* Finance handles withdrawals over WhatsApp, so the form hands off to a chat
+   with the request pre-filled — the organiser still presses send themselves. */
+const FINANCE_WA = "6285121320963";
+
 export function Withdraw() {
   const { manageEvent, closeWithdraw } = useEvent();
   const [recipient, setRecipient] = useState("");
@@ -31,6 +35,23 @@ export function Withdraw() {
   const [amount, setAmount] = useState(0);
 
   const ready = recipient.trim() && bank.trim() && account.trim() && amount > 0;
+
+  const submit = () => {
+    const message = [
+      "Halo, saya mau tarik uang. Detailnya:",
+      "",
+      manageEvent?.title ?? "Untitled Event",
+      manageEvent?.slug ?? "mynoosa.id/my-event",
+      "",
+      `Nama Penerima: ${recipient}`,
+      `Nama Bank: ${bank}`,
+      `Nomor Rekening: ${account}`,
+      "",
+      `Nominal yang ingin ditarik: Rp${rupiah(amount)}`,
+    ].join("\n");
+    window.open(`https://wa.me/${FINANCE_WA}?text=${encodeURIComponent(message)}`, "_blank", "noopener");
+    closeWithdraw();
+  };
 
   return (
     <div className="flex justify-center w-full px-[16px] phone:px-[20px] tablet:px-[32px] py-[32px]">
@@ -108,7 +129,7 @@ export function Withdraw() {
         <button
           type="button"
           disabled={!ready}
-          onClick={closeWithdraw}
+          onClick={submit}
           className={`bg-[#d8444b] rounded-[16px] w-full flex gap-[8px] items-center justify-center px-[32px] py-[18px] ${
             ready ? "cursor-pointer" : "opacity-50 cursor-not-allowed"
           }`}
