@@ -57,8 +57,8 @@ function FilterPills({ value, onChange }: { value: "upcoming" | "past"; onChange
 }
 
 function EventListCard({
-  event, selected, onOpen, onManage,
-}: { event: MyEvent; selected: boolean; onOpen: () => void; onManage: () => void }) {
+  event, selected, onOpen, onManage, onCheckIn,
+}: { event: MyEvent; selected: boolean; onOpen: () => void; onManage: () => void; onCheckIn: () => void }) {
   return (
     <div className={`bg-[#fbfbfb] rounded-[16px] w-full border ${selected ? "border-[#d8444b]" : "border-[#d9d9d9]"}`}>
       <div className="content-stretch flex flex-col gap-[12px] items-start p-[12px] w-full">
@@ -110,6 +110,7 @@ function EventListCard({
             {event.status === "published" && (
               <button
                 type="button"
+                onClick={onCheckIn}
                 className="bg-[#d8444b] flex gap-[8px] items-center justify-center px-[24px] py-[10px] rounded-[16px] cursor-pointer"
               >
                 <MonitorCheck className="size-[20px] shrink-0" strokeWidth={1.5} color="#FBFBFB" />
@@ -134,7 +135,7 @@ function EventListCard({
 }
 
 function EventList({
-  filter, onFilter, events, selectedId, onOpen, onManage,
+  filter, onFilter, events, selectedId, onOpen, onManage, onCheckIn,
 }: {
   filter: "upcoming" | "past";
   onFilter: (v: "upcoming" | "past") => void;
@@ -142,6 +143,7 @@ function EventList({
   selectedId: string | null;
   onOpen: (e: MyEvent) => void;
   onManage: (e: MyEvent) => void;
+  onCheckIn: () => void;
 }) {
   return (
     <div className="content-stretch flex flex-col gap-[24px] items-start w-full">
@@ -170,6 +172,7 @@ function EventList({
                   selected={e.id === selectedId}
                   onOpen={() => onOpen(e)}
                   onManage={() => onManage(e)}
+                  onCheckIn={onCheckIn}
                 />
               </div>
             </div>
@@ -346,6 +349,7 @@ function EventDetail({ event, onBack }: { event: MyEvent; onBack: () => void }) 
 
 /* Countdown + check-in entry point shown on published events. */
 function CheckInBar({ event }: { event: MyEvent }) {
+  const { openCheckIn } = useEvent();
   const days = daysUntil(event.startKey);
   const countdown =
     days === null ? "Event date not set"
@@ -369,6 +373,7 @@ function CheckInBar({ event }: { event: MyEvent }) {
         <p className="font-semibold leading-[1.2] text-[#131313] text-[18px]">{countdown}</p>
         <button
           type="button"
+          onClick={openCheckIn}
           className="bg-[#d8444b] rounded-[16px] flex gap-[8px] items-center justify-center px-[24px] py-[12px] shrink-0 cursor-pointer"
         >
           <MonitorCheck className="size-[20px] shrink-0" strokeWidth={1.5} color="#FBFBFB" />
@@ -382,7 +387,7 @@ function CheckInBar({ event }: { event: MyEvent }) {
 /* ---------- Page ---------- */
 
 export function MyEventsPage() {
-  const { myEvents, openManage } = useEvent();
+  const { myEvents, openManage, openCheckIn } = useEvent();
   const [filter, setFilter] = useState<"upcoming" | "past">("upcoming");
   const events = myEvents.filter((e) => (filter === "past" ? isPast(e) : !isPast(e)));
   const [selectedId, setSelectedId] = useState<string | null>(events[0]?.id ?? null);
@@ -411,6 +416,7 @@ export function MyEventsPage() {
               setDetailOpen(true);
             }}
             onManage={openManage}
+            onCheckIn={openCheckIn}
           />
         </div>
 

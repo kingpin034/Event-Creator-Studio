@@ -1,24 +1,25 @@
 import { useState } from "react";
 import { ScanFace, RefreshCw, ChevronUp, FileText, CircleCheckBig } from "lucide-react";
 import { useEvent } from "./event-context";
-import { VISITOR_COUNTER } from "./guests-data";
+import { countGuests } from "./guests-data";
 import type { Guest, GuestStatus, GuestGroup, TicketType } from "./guests-data";
 
-const STATUS_STYLE: Record<GuestStatus, { label: string; className: string }> = {
+export const STATUS_STYLE: Record<GuestStatus, { label: string; className: string }> = {
   registered: { label: "Registered", className: "bg-[#fef6e7] border-[#e0a33a] text-[#b97e12]" },
   confirmed: { label: "Confirmed", className: "bg-[#eef2ff] border-[#2563eb] text-[#2563eb]" },
   checkedin: { label: "Checked In", className: "bg-[#e9f7ee] border-[#1a9c4b] text-[#1a9c4b]" },
   canceled: { label: "Canceled", className: "bg-[#f7e9e9] border-[#d8444b] text-[#d8444b]" },
 };
 
-const TICKET_STYLE: Record<TicketType, string> = {
+export const TICKET_STYLE: Record<TicketType, string> = {
   "Early Bird": "bg-[#f7e9e9] border-[#d8444b] text-[#d8444b]",
   "VIP Access": "bg-[#fef6e7] border-[#e0a33a] text-[#b97e12]",
   Regular: "bg-[#f7e9e9] border-[#d8444b] text-[#d8444b]",
 };
 
-function VisitorCounter() {
-  const { capacity, checkedIn, confirmed, registered, canceled } = VISITOR_COUNTER;
+export function VisitorCounter() {
+  const { guests } = useEvent();
+  const { capacity, checkedIn, confirmed, registered, canceled } = countGuests(guests);
   const total = checkedIn + confirmed + registered + canceled;
   const pct = (n: number) => `${(n / capacity) * 100}%`;
   const legend = [
@@ -113,7 +114,7 @@ function Section({
 }
 
 export function GuestCheckIn() {
-  const { guests, setGuestStatus } = useEvent();
+  const { guests, setGuestStatus, openCheckIn } = useEvent();
   const inGroup = (g: GuestGroup) => guests.filter((x) => x.group === g);
 
   const approval = inGroup("approval");
@@ -127,6 +128,7 @@ export function GuestCheckIn() {
           <p className="font-semibold leading-[1.2] text-[#131313] text-[24px]">Guest Check In</p>
           <button
             type="button"
+            onClick={openCheckIn}
             className="bg-[#d8444b] rounded-[16px] flex gap-[8px] items-center justify-center px-[24px] py-[12px] shrink-0 cursor-pointer"
           >
             <ScanFace className="size-[20px] shrink-0" strokeWidth={1.5} color="#FBFBFB" />

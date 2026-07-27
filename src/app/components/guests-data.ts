@@ -17,11 +17,17 @@ export type Guest = {
 };
 
 export const SEED_GUESTS: Guest[] = [
-  { id: "g1", name: "Nina Kartika", email: "nina.kartika@example.com", avatar: avatarNina, ticketType: "Early Bird", status: "registered", group: "approval" },
-  { id: "g2", name: "Lara Whitfield", email: "lara.whitfield@domainmail.com", avatar: avatarLara, ticketType: "VIP Access", status: "registered", group: "payment" },
-  { id: "g3", name: "Lara Whitfield", email: "lara.whitfield@domainmail.com", avatar: avatarLara, ticketType: "VIP Access", status: "registered", group: "payment" },
-  { id: "g4", name: "Lara Whitfield", email: "lara.whitfield@domainmail.com", avatar: avatarLara, ticketType: "Regular", status: "confirmed", group: "list" },
-  { id: "g5", name: "Lara Whitfield", email: "lara.whitfield@domainmail.com", avatar: avatarLara, ticketType: "Early Bird", status: "checkedin", group: "list" },
+  { id: "g1", name: "Nina Kartika", email: "nina.kartika@example.com", avatar: avatarNina, ticketType: "Regular", status: "checkedin", group: "list" },
+  { id: "g2", name: "Lara Whitman", email: "lara.whitman@example.com", avatar: avatarLara, ticketType: "Regular", status: "confirmed", group: "list" },
+  { id: "g3", name: "Felix Grant", email: "felix.grant@example.com", avatar: avatarLara, ticketType: "Regular", status: "registered", group: "approval" },
+  { id: "g4", name: "Milo Jensen", email: "milo.jensen@example.com", avatar: avatarNina, ticketType: "VIP Access", status: "confirmed", group: "list" },
+  { id: "g5", name: "Zara Kim", email: "zara.kim@example.com", avatar: avatarLara, ticketType: "VIP Access", status: "checkedin", group: "list" },
+  { id: "g6", name: "Evan Brooks", email: "evan.brooks@example.com", avatar: avatarNina, ticketType: "Early Bird", status: "registered", group: "payment" },
+  { id: "g7", name: "Nina Patel", email: "nina.patel@example.com", avatar: avatarLara, ticketType: "Early Bird", status: "checkedin", group: "list" },
+  { id: "g8", name: "Jasper Lee", email: "jasper.lee@example.com", avatar: avatarNina, ticketType: "Early Bird", status: "canceled", group: "list" },
+  { id: "g9", name: "Sofia Ramirez", email: "sofia.ramirez@example.com", avatar: avatarLara, ticketType: "Regular", status: "checkedin", group: "list" },
+  { id: "g10", name: "Theo Morgan", email: "theo.morgan@example.com", avatar: avatarNina, ticketType: "Regular", status: "checkedin", group: "list" },
+  { id: "g11", name: "Maya Chen", email: "maya.chen@example.com", avatar: avatarLara, ticketType: "Regular", status: "canceled", group: "list" },
 ];
 
 /* Registration records behind the Guest Data table. */
@@ -51,11 +57,16 @@ export const GUEST_RECORDS: GuestRecord[] = RECORD_NAMES.map((name, i) => ({
   answer: "Sample answer question text from the registration form",
 }));
 
-/** Headline numbers on the Visitor Counter — event-wide, not just the rows shown. */
-export const VISITOR_COUNTER = {
-  capacity: 80,
-  checkedIn: 5,
-  confirmed: 2,
-  registered: 2,
-  canceled: 2,
-};
+export const EVENT_CAPACITY = 80;
+
+/** Visitor Counter figures, derived so the bar tracks live status changes. */
+export function countGuests(guests: Guest[]) {
+  const by = (s: GuestStatus) => guests.filter((g) => g.status === s).length;
+  return {
+    capacity: EVENT_CAPACITY,
+    checkedIn: by("checkedin"),
+    confirmed: by("confirmed"),
+    registered: by("registered"),
+    canceled: by("canceled"),
+  };
+}

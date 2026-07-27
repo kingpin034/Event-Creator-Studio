@@ -78,7 +78,7 @@ export type Ticket = {
 
 /* Which screen the shell is showing. State-based rather than routed — keeps the
    whole in-memory form intact when you navigate away and back. */
-export type Page = "create" | "discover" | "tickets" | "events" | "manage";
+export type Page = "create" | "discover" | "tickets" | "events" | "manage" | "checkin" | "withdraw";
 
 type EventState = {
   page: Page;
@@ -88,6 +88,12 @@ type EventState = {
   openManage: (e: MyEvent) => void;
   /** Take the event open in Manage from draft to published. */
   publishManagedEvent: () => void;
+  /** Full-screen scanner; remembers where it was opened from. */
+  openCheckIn: () => void;
+  closeCheckIn: () => void;
+  /** Withdraw form; also returns to wherever it was opened from. */
+  openWithdraw: () => void;
+  closeWithdraw: () => void;
   activeTab: "discover" | "tickets" | "events";
   setActiveTab: (t: EventState["activeTab"]) => void;
   language: "id" | "en";
@@ -279,6 +285,19 @@ export function EventProvider({ children }: { children: ReactNode }) {
     setPage("manage");
   };
 
+  // Shared by the full-page sub-flows: remember what to go back to.
+  const [returnTo, setReturnTo] = useState<Page>("manage");
+  const openCheckIn = () => {
+    setReturnTo(page);
+    setPage("checkin");
+  };
+  const closeCheckIn = () => setPage(returnTo);
+  const openWithdraw = () => {
+    setReturnTo(page);
+    setPage("withdraw");
+  };
+  const closeWithdraw = () => setPage(returnTo);
+
   const publishManagedEvent = () => {
     setManageEvent((e) => (e ? { ...e, status: "published" } : e));
     setMyEvents((list) =>
@@ -298,6 +317,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
 
   const value: EventState = {
     page, setPage, manageEvent, openManage, publishManagedEvent,
+    openCheckIn, closeCheckIn, openWithdraw, closeWithdraw,
     activeTab, setActiveTab, language, setLanguage,
     eventName, setEventName, slug, setSlug,
     startDate, setStartDate, startTime, setStartTime, endDate, setEndDate, endTime, setEndTime,

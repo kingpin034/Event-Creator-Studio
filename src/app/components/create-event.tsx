@@ -6,6 +6,8 @@ import { useEvent } from "./event-context";
 import type { Page } from "./event-context";
 import { MyEventsPage } from "./my-events";
 import { ManageEventPage } from "./manage-event";
+import { GuestCheckScan } from "./guest-check-scan";
+import { Withdraw } from "./withdraw";
 
 const PAGE_NAMES: Record<Exclude<Page, "create">, string> = {
   discover: "Discover",
@@ -53,11 +55,15 @@ export function CreateEvent() {
   const { page } = useEvent();
   return (
     <div className="min-h-screen flex flex-col bg-[#fbfbfb]">
-      <NavBar />
+      {/* Check In is a focused scanning screen with its own back button, so it
+          runs without the nav. The footer stays. */}
+      {page !== "checkin" && <NavBar />}
       <main className="bg-[#fbfbfb] flex justify-center w-full flex-1 relative">
         {page === "create" && <CreateEventPage />}
         {page === "events" && <MyEventsPage />}
         {page === "manage" && <ManageEventPage />}
+        {page === "checkin" && <GuestCheckScan />}
+        {page === "withdraw" && <Withdraw />}
         {(page === "discover" || page === "tickets") && <PlaceholderPage name={PAGE_NAMES[page]} />}
       </main>
       <Footer />

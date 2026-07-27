@@ -114,7 +114,7 @@ function TierCard({
 const COLUMNS = ["Status", "Transaction Date", "Name", "Phone Number", "Ticket Type", "Amount"] as const;
 
 export function TicketTransaction() {
-  const { tickets, updateTicket } = useEvent();
+  const { tickets, updateTicket, openWithdraw } = useEvent();
   const [query, setQuery] = useState("");
   const [asc, setAsc] = useState(true);
   const [editing, setEditing] = useState<Ticket | null>(null);
@@ -158,6 +158,7 @@ export function TicketTransaction() {
             </button>
             <button
               type="button"
+              onClick={openWithdraw}
               className="bg-[#d8444b] rounded-[16px] flex gap-[8px] items-center justify-center px-[24px] py-[12px] shrink-0 cursor-pointer"
             >
               <CreditCard className="size-[20px] shrink-0" strokeWidth={1.5} color="#FBFBFB" />
