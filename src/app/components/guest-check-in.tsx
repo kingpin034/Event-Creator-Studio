@@ -128,7 +128,7 @@ export function GuestCheckIn() {
           <p className="font-semibold leading-[1.2] text-[#131313] text-[24px]">Guest Check In</p>
           <button
             type="button"
-            onClick={openCheckIn}
+            onClick={() => openCheckIn()}
             className="bg-[#d8444b] rounded-[16px] flex gap-[8px] items-center justify-center px-[24px] py-[12px] shrink-0 cursor-pointer"
           >
             <ScanFace className="size-[20px] shrink-0" strokeWidth={1.5} color="#FBFBFB" />

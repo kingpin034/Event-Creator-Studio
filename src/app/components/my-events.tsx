@@ -1,9 +1,9 @@
 import { useState } from "react";
 import {
-  CalendarCheck, History, PencilRuler, ArrowUpRight, ArrowLeft, Copy, CalendarPlus, Share2,
+  CalendarCheck, History, PencilRuler, Settings2, Settings, AlarmClockOff, ArrowLeft, Copy, CalendarPlus, Share2,
   CalendarDays, MapPin, BookUser, ChevronRight, Trash2, Ticket, Globe, MonitorCheck, Users,
 } from "lucide-react";
-import { isPast, daysUntil } from "./my-events-data";
+import { isPast, daysUntil, organizerCardState } from "./my-events-data";
 import type { MyEvent, EventStatus } from "./my-events-data";
 import { useEvent } from "./event-context";
 
@@ -16,9 +16,9 @@ function Cover({ src, alt, className = "" }: { src: string | null; alt: string; 
 }
 
 const STATUS_STYLE: Record<EventStatus, { label: string; className: string; Icon: typeof PencilRuler }> = {
-  draft: { label: "Draft", className: "bg-[#eef2ff] border-[#2563eb] text-[#2563eb]", Icon: PencilRuler },
-  published: { label: "Published", className: "bg-[#e9f7ee] border-[#1a9c4b] text-[#1a9c4b]", Icon: Globe },
-  ended: { label: "Ended", className: "bg-[#f4f4f4] border-[#9e9e9e] text-[#9e9e9e]", Icon: History },
+  draft: { label: "Draft", className: "bg-[#e5edfc] border-transparent text-[#2563eb]", Icon: PencilRuler },
+  published: { label: "Published", className: "bg-[#e3f3e4] border-transparent text-[#1a9c4b]", Icon: Globe },
+  ended: { label: "Ended", className: "bg-[#fbfbfb] border-transparent text-[#9e9e9e]", Icon: AlarmClockOff },
 };
 
 function StatusBadge({ status }: { status: EventStatus }) {
@@ -59,8 +59,11 @@ function FilterPills({ value, onChange }: { value: "upcoming" | "past"; onChange
 function EventListCard({
   event, selected, onOpen, onManage, onCheckIn,
 }: { event: MyEvent; selected: boolean; onOpen: () => void; onManage: () => void; onCheckIn: () => void }) {
+  const state = organizerCardState(event);
+  const status = state === "ended" ? "ended" : event.status;
+  const ActionIcon = state === "draft" ? Settings : state === "ended" ? History : Settings2;
   return (
-    <div className={`bg-[#fbfbfb] rounded-[16px] w-full border ${selected ? "border-[#d8444b]" : "border-[#d9d9d9]"}`}>
+    <div className={`bg-[#f4f4f4] rounded-[16px] w-full border ${selected ? "border-[#d8444b]" : "border-[#d9d9d9]"}`}>
       <div className="content-stretch flex flex-col gap-[12px] items-start p-[12px] w-full">
         {/* Card body opens the detail view; the arrow buttons go to Manage Event. */}
         <div
@@ -89,7 +92,7 @@ function EventListCard({
                 <p className="font-normal leading-none text-[#414141] text-[16px]">{event.price}</p>
               </div>
               <div className="flex gap-[8px] items-center">
-                <img src={event.hosts[0].avatar} alt="" className="size-[20px] rounded-[999px] object-cover shrink-0" />
+                <img src={event.hosts[0]?.avatar} alt="" className="size-[20px] rounded-[999px] object-cover shrink-0" />
                 <p className="font-normal leading-none text-[#414141] text-[16px]">{event.organizer}</p>
               </div>
             </div>
@@ -103,30 +106,20 @@ function EventListCard({
             </svg>
           </div>
         </div>
-        {/* Published events swap Event Settings for Check In + Manage. */}
         <div className="content-stretch flex flex-wrap gap-[8px] items-center justify-between w-full">
-          <StatusBadge status={event.status} />
+          <StatusBadge status={status} />
           <div className="flex flex-wrap gap-[8px] items-center">
-            {event.status === "published" && (
-              <button
-                type="button"
-                onClick={onCheckIn}
-                className="bg-[#d8444b] flex gap-[8px] items-center justify-center px-[24px] py-[10px] rounded-[16px] cursor-pointer"
-              >
-                <MonitorCheck className="size-[20px] shrink-0" strokeWidth={1.5} color="#FBFBFB" />
-                <span className="font-medium leading-none text-[#fbfbfb] text-[16px] whitespace-nowrap">Check In</span>
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={onManage}
-              className="bg-[#e4e4e4] flex gap-[8px] items-center justify-center px-[24px] py-[10px] rounded-[16px] cursor-pointer"
-            >
-              <span className="font-medium leading-none text-[#131313] text-[16px] whitespace-nowrap">
-                {event.status === "published" ? "Manage" : "Event Settings"}
-              </span>
-              <ArrowUpRight className="size-[20px] shrink-0" strokeWidth={1.5} color="#131313" />
+            <button type="button" onClick={state === "ended" ? onOpen : onManage}
+              aria-label={state === "soon" ? `Manage ${event.title}` : undefined}
+              title={state === "soon" ? "Manage Event" : undefined}
+              className={`bg-[#e4e4e4] flex gap-[8px] items-center justify-center cursor-pointer ${state === "soon" ? "size-[40px] rounded-full border border-[#d9d9d9]" : "px-[16px] py-[10px] rounded-[16px]"}`}>
+              <ActionIcon className="size-[20px] shrink-0" strokeWidth={1.5} color="#131313" />
+              {state !== "soon" && <span className="font-medium leading-none text-[#131313] text-[16px] whitespace-nowrap">{state === "draft" ? "Event Settings" : state === "ended" ? "Event History" : "Manage Event"}</span>}
             </button>
+            {state === "soon" && <button type="button" onClick={onCheckIn} className="bg-[#d8444b] flex gap-[8px] items-center justify-center px-[16px] py-[10px] rounded-[16px] cursor-pointer">
+              <MonitorCheck className="size-[20px] shrink-0" strokeWidth={1.5} color="#FBFBFB" />
+              <span className="font-medium leading-none text-[#fbfbfb] text-[16px] whitespace-nowrap">Check In</span>
+            </button>}
           </div>
         </div>
       </div>
@@ -143,7 +136,7 @@ function EventList({
   selectedId: string | null;
   onOpen: (e: MyEvent) => void;
   onManage: (e: MyEvent) => void;
-  onCheckIn: () => void;
+  onCheckIn: (event: MyEvent) => void;
 }) {
   return (
     <div className="content-stretch flex flex-col gap-[24px] items-start w-full">
@@ -172,7 +165,7 @@ function EventList({
                   selected={e.id === selectedId}
                   onOpen={() => onOpen(e)}
                   onManage={() => onManage(e)}
-                  onCheckIn={onCheckIn}
+                  onCheckIn={() => onCheckIn(e)}
                 />
               </div>
             </div>
@@ -194,13 +187,14 @@ function IconTile({ children }: { children: React.ReactNode }) {
 }
 
 function EventDetail({ event, onBack }: { event: MyEvent; onBack: () => void }) {
+  const showCheckIn = organizerCardState(event) === "soon";
   const d = 0.0035;
   const bbox = [event.lon - d, event.lat - d / 2, event.lon + d, event.lat + d / 2].join(",");
   return (
     <div
       className={`content-stretch flex flex-col gap-[16px] items-start w-full ${
         // Clear the pinned check-in bar in the separated view.
-        event.status !== "draft" ? "pb-[200px] laptop:pb-0" : ""
+        showCheckIn ? "pb-[200px] laptop:pb-0" : ""
       }`}
     >
       {/* Mobile-only way back to the list */}
@@ -232,7 +226,7 @@ function EventDetail({ event, onBack }: { event: MyEvent; onBack: () => void }) 
 
       {/* Side-by-side: the check-in bar sits inline here. Separated view pins it
           to the bottom of the screen instead (rendered at the end). */}
-      {event.status !== "draft" && (
+      {showCheckIn && (
         <div className="hidden laptop:block w-full">
           <CheckInBar event={event} />
         </div>
@@ -338,7 +332,7 @@ function EventDetail({ event, onBack }: { event: MyEvent; onBack: () => void }) 
       )}
 
       {/* Separated view only: pinned to the bottom of the viewport. */}
-      {event.status !== "draft" && (
+      {showCheckIn && (
         <div className="laptop:hidden fixed inset-x-0 bottom-0 z-40 px-[16px] phone:px-[20px] tablet:px-[32px] pb-[16px]">
           <CheckInBar event={event} />
         </div>
@@ -373,7 +367,7 @@ function CheckInBar({ event }: { event: MyEvent }) {
         <p className="font-semibold leading-[1.2] text-[#131313] text-[18px]">{countdown}</p>
         <button
           type="button"
-          onClick={openCheckIn}
+          onClick={() => openCheckIn(event)}
           className="bg-[#d8444b] rounded-[16px] flex gap-[8px] items-center justify-center px-[24px] py-[12px] shrink-0 cursor-pointer"
         >
           <MonitorCheck className="size-[20px] shrink-0" strokeWidth={1.5} color="#FBFBFB" />

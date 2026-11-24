@@ -38,6 +38,8 @@ export type GuestRecord = {
   phone: string;
   ticketType: TicketType;
   answer: string;
+  answers?: { question: string; value: string | string[] }[];
+  lastTicketResend?: { name: string; email: string; phone: string; requestedAt: string; status: "simulated" };
 };
 
 const RECORD_NAMES = [
@@ -68,5 +70,21 @@ export function countGuests(guests: Guest[]) {
     confirmed: by("confirmed"),
     registered: by("registered"),
     canceled: by("canceled"),
+  };
+}
+
+export type GuestContact = Pick<GuestRecord, "name" | "email" | "phone">;
+
+/** Explicit allowlist: contact edits cannot change the ticket or registration answers. */
+export function updateGuestContact(record: GuestRecord, contact: GuestContact, resend: boolean): GuestRecord {
+  const name = contact.name.trim();
+  const email = contact.email.trim().toLowerCase();
+  const phone = contact.phone.trim();
+  if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !/^\+?[\d\s().-]+$/.test(phone) || phone.replace(/\D/g, "").length < 7 || phone.replace(/\D/g, "").length > 15) {
+    throw new Error("Enter a name, valid email address, and phone number with 7–15 digits.");
+  }
+  return {
+    ...record, name, email, phone,
+    ...(resend ? { lastTicketResend: { name, email, phone, requestedAt: new Date().toISOString(), status: "simulated" as const } } : {}),
   };
 }

@@ -1,8 +1,10 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 import { buildMyEvent } from "./my-events-data";
 import type { MyEvent } from "./my-events-data";
-import { SEED_GUESTS } from "./guests-data";
-import type { Guest, GuestGroup, GuestStatus } from "./guests-data";
+import { SEED_RESELLERS } from "./resellers-data";
+import type { Reseller } from "./resellers-data";
+import { SEED_GUESTS, GUEST_RECORDS, updateGuestContact } from "./guests-data";
+import type { Guest, GuestGroup, GuestStatus, GuestRecord, GuestContact } from "./guests-data";
 import avatarNina from "../../imports/CreateEvent/e27b6eadc42f49044311dda5785cb9888870d2aa.png";
 import avatarSari from "../../imports/CreateEvent/70e45f1a0fc21216d81b88682bd3644cab93d013.png";
 import avatarBudi from "../../imports/Desktop/17ceb0c55de24d1473640dd2e87358366a1df7ca.png";
@@ -83,18 +85,20 @@ export type Page = "create" | "discover" | "tickets" | "events" | "manage" | "ch
 /* Which section of the Manage dashboard is showing. */
 export type ManageSection =
   | "information" | "tickets" | "blast"
-  | "checkin" | "guests" | "transactions";
+  | "checkin" | "guests" | "transactions" | "resellers";
 
 type EventState = {
   page: Page;
   setPage: (p: Page) => void;
   /** Event currently open in the Manage Event dashboard. */
   manageEvent: MyEvent | null;
+  resellers: Reseller[];
+  setResellers: (resellers: Reseller[]) => void;
   openManage: (e: MyEvent) => void;
   /** Take the event open in Manage from draft to published. */
   publishManagedEvent: () => void;
   /** Full-screen scanner; remembers where it was opened from. */
-  openCheckIn: () => void;
+  openCheckIn: (event?: MyEvent) => void;
   closeCheckIn: () => void;
   /** Withdraw form; also returns to wherever it was opened from. */
   openWithdraw: () => void;
@@ -150,6 +154,8 @@ type EventState = {
   toggleWelcomeFormat: (k: string) => void;
   blasts: Blast[];
   addBlast: (subject: string, body: string) => void;
+  guestRecords: GuestRecord[];
+  saveGuestContact: (id: string, contact: GuestContact, resend: boolean) => void;
   guests: Guest[];
   setGuestStatus: (id: string, status: GuestStatus, group?: GuestGroup) => void;
   myEvents: MyEvent[];
@@ -224,7 +230,24 @@ export function EventProvider({ children }: { children: ReactNode }) {
   // Starts empty — the list fills up as events are saved or published.
   const [myEvents, setMyEvents] = useState<MyEvent[]>([]);
   const [manageEvent, setManageEvent] = useState<MyEvent | null>(null);
+  const [resellersByEvent, setResellersByEvent] = useState<Record<string, Reseller[]>>({});
+  const resellers = manageEvent ? (resellersByEvent[manageEvent.id] ?? SEED_RESELLERS) : [];
+  const setResellers = (next: Reseller[]) => {
+    if (manageEvent) setResellersByEvent((current) => ({ ...current, [manageEvent.id]: next }));
+  };
   const [blasts, setBlasts] = useState<Blast[]>(SEED_BLASTS);
+  const [recordsByEvent, setRecordsByEvent] = useState<Record<string, GuestRecord[]>>({});
+  const guestRecords = manageEvent ? (recordsByEvent[manageEvent.id] ?? GUEST_RECORDS) : [];
+  const saveGuestContact = (id: string, contact: GuestContact, resend: boolean) => {
+    if (!manageEvent) return;
+    const record = guestRecords.find((guest) => guest.id === id);
+    if (!record) throw new Error("This guest could not be found.");
+    const updated = updateGuestContact(record, contact, resend);
+    setRecordsByEvent((current) => ({
+      ...current,
+      [manageEvent.id]: (current[manageEvent.id] ?? GUEST_RECORDS).map((guest) => guest.id === id ? updated : guest),
+    }));
+  };
   const [guests, setGuests] = useState<Guest[]>(SEED_GUESTS);
 
   // Confirming or approving a guest moves them into the main guest list.
@@ -277,6 +300,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
     const entry = buildMyEvent(
       {
         eventName, slug, startDate, startTime, endDate, endTime,
+        timeZoneOffset: `+${timeZone.offset.replace("GMT +", "").padStart(5, "0")}`,
         description, welcomeTitle, welcomeBody,
         coverUrl, gallery, selectedLocation, tickets, hosts,
       },
@@ -297,7 +321,8 @@ export function EventProvider({ children }: { children: ReactNode }) {
   // local state would drop you back on Event Information on the way out.
   const [returnTo, setReturnTo] = useState<Page>("manage");
   const [manageSection, setManageSection] = useState<ManageSection>("information");
-  const openCheckIn = () => {
+  const openCheckIn = (event?: MyEvent) => {
+    if (event) setManageEvent(event);
     setReturnTo(page);
     setPage("checkin");
   };
@@ -326,6 +351,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
     setGallery((g) => g.map((x, idx) => (idx === i ? v : x)));
 
   const value: EventState = {
+    resellers, setResellers,
     page, setPage, manageEvent, openManage, publishManagedEvent,
     openCheckIn, closeCheckIn, openWithdraw, closeWithdraw,
     manageSection, setManageSection,
@@ -340,7 +366,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
     welcomeAdded, setWelcomeAdded, welcomeTitle, setWelcomeTitle,
     welcomeBody, setWelcomeBody, welcomeFormats, toggleWelcomeFormat,
     questions, addQuestion, updateQuestion, removeQuestion,
-    myEvents, submitEvent, blasts, addBlast, guests, setGuestStatus,
+    myEvents, submitEvent, blasts, addBlast, guests, setGuestStatus, guestRecords, saveGuestContact,
     onlineEvent, setOnlineEvent, selectedLocation, setSelectedLocation,
     platform, setPlatform, eventUrl, setEventUrl,
     locationNotes, setLocationNotes,

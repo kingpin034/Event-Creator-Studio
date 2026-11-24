@@ -17,6 +17,7 @@ export type MyEvent = {
   timeRange: string;
   /** Raw yyyy-mm-dd start, for the countdown. Empty when no date was set. */
   startKey: string;
+  endsAt?: string;
   venue: string;
   venueTag: string;
   address: string;
@@ -66,12 +67,21 @@ function rupiah(n: number) {
 }
 
 /** Whole days from today until the event starts; null when there's no date. */
-export function daysUntil(startKey: string): number | null {
-  const d = parseKey(startKey);
-  if (!d) return null;
-  const today = new Date();
-  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  return Math.round((d.getTime() - start.getTime()) / 86400000);
+export function daysUntil(startKey: string, now = new Date()): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startKey)) return null;
+  const target = Date.parse(`${startKey}T00:00:00Z`);
+  if (!Number.isFinite(target)) return null;
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+  return Math.round((target - Date.parse(`${today}T00:00:00Z`)) / 86400000);
+}
+
+export type OrganizerCardState = "soon" | "upcoming" | "draft" | "ended";
+export function organizerCardState(event: MyEvent, now = new Date()): OrganizerCardState {
+  if (event.status === "draft") return "draft";
+  if (event.status === "ended") return "ended";
+  const days = daysUntil(event.startKey, now);
+  if (event.endsAt ? Date.parse(event.endsAt) <= now.getTime() : days !== null && days < 0) return "ended";
+  return days !== null && days <= 7 ? "soon" : "upcoming";
 }
 
 export type EventDraftInput = {
@@ -79,6 +89,7 @@ export type EventDraftInput = {
   slug: string;
   startDate: string;
   startTime: string;
+  timeZoneOffset?: string;
   endDate: string;
   endTime: string;
   description: string;
@@ -108,6 +119,7 @@ export function buildMyEvent(input: EventDraftInput, status: EventStatus): MyEve
     detailDate: longDateOf(input.startDate),
     timeRange: times.length === 2 ? `${times[0]} - ${times[1]}` : times[0] || "Time not set",
     startKey: input.startDate,
+    endsAt: (input.endDate || input.startDate) ? `${input.endDate || input.startDate}T${input.endTime || "23:59:59"}${input.timeZoneOffset || "+07:00"}` : undefined,
     venue: input.selectedLocation?.name ?? "Location not set",
     venueTag: input.selectedLocation ? "Indoor Area" : "",
     address: input.selectedLocation?.address ?? "",
@@ -125,4 +137,4 @@ export function buildMyEvent(input: EventDraftInput, status: EventStatus): MyEve
   };
 }
 
-export const isPast = (e: MyEvent) => e.status === "ended";
+export const isPast = (e: MyEvent) => organizerCardState(e) === "ended";

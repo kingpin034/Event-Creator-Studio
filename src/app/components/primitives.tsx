@@ -27,11 +27,13 @@ export function Toggle({
   onChange,
   labelOn,
   labelOff,
+  ariaLabel,
 }: {
   on: boolean;
   onChange: (v: boolean) => void;
   labelOn: string;
   labelOff: string;
+  ariaLabel?: string;
 }) {
   return (
     <div className="content-stretch flex gap-[4px] items-center relative shrink-0">
@@ -40,6 +42,7 @@ export function Toggle({
       </p>
       <button
         type="button"
+        aria-label={ariaLabel}
         aria-pressed={on}
         onClick={() => onChange(!on)}
         className="h-[20px] overflow-clip relative shrink-0 w-[40px] cursor-pointer"

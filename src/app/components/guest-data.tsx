@@ -1,26 +1,31 @@
 import { useMemo, useState } from "react";
-import { Upload, Search, ArrowUpDown, ListFilter } from "lucide-react";
-import { GUEST_RECORDS } from "./guests-data";
+import { Upload, Search, ArrowUpDown, ListFilter, ExternalLink, SquarePen } from "lucide-react";
+import { useEvent } from "./event-context";
+import { GuestDataModal } from "./guest-data-modal";
 
-const COLUMNS = ["Name", "Email", "Phone Number", "Ticket Type", "Text"] as const;
+const COLUMNS = ["Email", "Phone Number", "Name", "Ticket Type"] as const;
 
 export function GuestData() {
+  const { guestRecords } = useEvent();
+  const [selection, setSelection] = useState<{ id: string; mode: "view" | "edit" } | null>(null);
+  const [notice, setNotice] = useState("");
+  const selectedGuest = guestRecords.find((guest) => guest.id === selection?.id);
   const [query, setQuery] = useState("");
   const [asc, setAsc] = useState(true);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
     const filtered = q
-      ? GUEST_RECORDS.filter(
+      ? guestRecords.filter(
           (r) =>
             r.name.toLowerCase().includes(q) ||
             r.email.toLowerCase().includes(q) ||
             r.phone.includes(q) ||
             r.ticketType.toLowerCase().includes(q),
         )
-      : GUEST_RECORDS;
+      : guestRecords;
     return [...filtered].sort((a, b) => (asc ? 1 : -1) * a.name.localeCompare(b.name));
-  }, [query, asc]);
+  }, [query, asc, guestRecords]);
 
   return (
     <div className="flex justify-center w-full px-[16px] phone:px-[20px] tablet:px-[32px] py-[32px]">
@@ -64,6 +69,8 @@ export function GuestData() {
           </button>
         </div>
 
+        {notice && <p role="status" className="text-[14px] text-[#414141]">{notice}</p>}
+
         {/* Table — wider than the column, so it scrolls sideways. */}
         <div className="border border-[#d9d9d9] rounded-[16px] w-full overflow-hidden">
           <div className="w-full overflow-x-auto">
@@ -78,23 +85,26 @@ export function GuestData() {
                       {c}
                     </th>
                   ))}
+                  <th scope="col"><span className="sr-only">View details</span></th>
+                  <th scope="col"><span className="sr-only">Edit data</span></th>
                 </tr>
               </thead>
               <tbody>
                 {rows.length === 0 ? (
                   <tr>
-                    <td colSpan={COLUMNS.length} className="px-[16px] py-[24px]">
+                    <td colSpan={COLUMNS.length + 2} className="px-[16px] py-[24px]">
                       <p className="font-normal leading-[1.3] text-[#9e9e9e] text-[16px]">No guests match that search.</p>
                     </td>
                   </tr>
                 ) : (
                   rows.map((r) => (
-                    <tr key={r.id} className="bg-[#fbfbfb] border-t border-[#d9d9d9]">
-                      <td className="font-normal leading-[1.3] text-[#131313] text-[16px] whitespace-nowrap px-[16px] py-[16px]">{r.name}</td>
+                    <tr key={r.id} className="odd:bg-[#fbfbfb] even:bg-[#f4f4f4] border-t border-[#d9d9d9]">
                       <td className="font-normal leading-[1.3] text-[#131313] text-[16px] whitespace-nowrap px-[16px] py-[16px]">{r.email}</td>
                       <td className="font-normal leading-[1.3] text-[#131313] text-[16px] whitespace-nowrap px-[16px] py-[16px]">{r.phone}</td>
+                      <td className="font-normal leading-[1.3] text-[#131313] text-[16px] whitespace-nowrap px-[16px] py-[16px]">{r.name}</td>
                       <td className="font-normal leading-[1.3] text-[#131313] text-[16px] whitespace-nowrap px-[16px] py-[16px]">{r.ticketType}</td>
-                      <td className="font-normal leading-[1.3] text-[#131313] text-[16px] px-[16px] py-[16px] min-w-[220px]">{r.answer}</td>
+                      <td className="px-[12px] py-[12px]"><button type="button" aria-label={`View ${r.name}`} onClick={() => setSelection({ id: r.id, mode: "view" })} className="bg-[#e4e4e4] rounded-[12px] px-[12px] py-[10px] flex items-center gap-[4px] whitespace-nowrap text-[14px] cursor-pointer">View<ExternalLink className="size-[18px]" strokeWidth={1.5} /></button></td>
+                      <td className="px-[12px] py-[12px]"><button type="button" aria-label={`Edit data for ${r.name}`} onClick={() => setSelection({ id: r.id, mode: "edit" })} className="bg-[#e4e4e4] rounded-[12px] px-[12px] py-[10px] flex items-center gap-[4px] whitespace-nowrap text-[14px] cursor-pointer">Edit Data<SquarePen className="size-[18px]" strokeWidth={1.5} /></button></td>
                     </tr>
                   ))
                 )}
@@ -103,6 +113,7 @@ export function GuestData() {
           </div>
         </div>
       </div>
+      {selectedGuest && selection && <GuestDataModal key={`${selectedGuest.id}-${selection.mode}`} guest={selectedGuest} mode={selection.mode} onClose={() => setSelection(null)} onSaved={(message) => { setNotice(message); setSelection(null); }} />}
     </div>
   );
 }

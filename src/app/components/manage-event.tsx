@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   PanelLeftClose, PanelLeftOpen, Globe, FileText, Wallet, MessageSquareText,
-  ScanFace, FileSearch, TrendingUp, PencilRuler, History, Save,
+  ScanFace, FileSearch, TrendingUp, UserRoundCheck, PencilRuler, History, Save,
 } from "lucide-react";
 import { useEvent } from "./event-context";
 import type { ManageSection } from "./event-context";
@@ -11,6 +11,7 @@ import { ConfirmModal } from "./confirm-modal";
 import { BlastMessage } from "./blast-message";
 import { GuestCheckIn } from "./guest-check-in";
 import { GuestData } from "./guest-data";
+import { ResellerControl } from "./reseller-control";
 import { TicketTransaction } from "./ticket-transaction";
 import {
   EventNameField, SlugField, DateTimeCard, AboutCard, LocationCard, HostsCard,
@@ -35,6 +36,7 @@ const NAV: { group: string; items: { id: SectionId; label: string; Icon: typeof 
       { id: "checkin", label: "Guest Check In", Icon: ScanFace },
       { id: "guests", label: "Guest Data", Icon: FileSearch },
       { id: "transactions", label: "Ticket Transaction", Icon: TrendingUp },
+      { id: "resellers", label: "Reseller Control", Icon: UserRoundCheck },
     ],
   },
 ];
@@ -363,7 +365,8 @@ export function ManageEventPage() {
         {active === "checkin" && <GuestCheckIn />}
         {active === "guests" && <GuestData />}
         {active === "transactions" && <TicketTransaction />}
-        {!["information", "tickets", "blast", "checkin", "guests", "transactions"].includes(active) && (
+        {active === "resellers" && <ResellerControl />}
+        {!["information", "tickets", "blast", "checkin", "guests", "transactions", "resellers"].includes(active) && (
           <ComingSoon label={label} />
         )}
       </div>
